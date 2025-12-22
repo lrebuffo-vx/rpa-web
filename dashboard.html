@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Vortex News</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body class="dashboard-body">
+
+    <div id="app">
+        <!-- Main Dashboard Section -->
+        <section id="dashboard-section" class="active-section">
+            <nav class="navbar glass-panel">
+                <div class="logo">Vortex News</div>
+                <div class="user-controls">
+                    <span id="welcome-msg">Cargando...</span>
+                    <button id="logout-btn" class="btn-text">Cerrar Sesión</button>
+                </div>
+            </nav>
+
+            <div class="content-wrapper">
+                <header class="page-header">
+                    <h2>Novedades y Noticias</h2>
+                    <p>Mantente al día con los últimos acontecimientos.</p>
+                </header>
+
+                <div id="admin-controls" class="admin-controls hidden">
+                    <button id="create-news-btn" class="btn-primary">+ Nueva Noticia</button>
+                </div>
+
+                <div id="news-feed" class="news-grid">
+                    <!-- News items will be injected here -->
+                    <div class="loading-spinner">Cargando noticias...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for Create/Edit -->
+    <div id="news-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <span class="close-modal">&times;</span>
+            <h2 id="modal-title">Crear Noticia</h2>
+            <form id="news-form">
+                <input type="hidden" id="news-id">
+                <div class="input-group">
+                    <label for="news-title">Título</label>
+                    <input type="text" id="news-title" required>
+                </div>
+                <div class="input-group">
+                    <label for="news-image">Imagen de Portada (Opcional)</label>
+                    <input type="file" id="news-image" accept="image/*">
+                </div>
+                <div class="input-group">
+                    <label for="news-content">Contenido</label>
+                    <textarea id="news-content" rows="5" required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/dashboard.js"></script>
+</body>
+
+</html>
