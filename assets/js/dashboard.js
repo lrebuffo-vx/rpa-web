@@ -1,7 +1,13 @@
 // State Management
 const STATE = {
     currentUser: null,
-    news: []
+    news: [],
+    filteredNews: [],
+    filters: {
+        search: '',
+        category: '',
+        tag: ''
+    }
 };
 
 // DOM Elements
@@ -15,9 +21,16 @@ const newsForm = document.getElementById('news-form');
 const modalTitle = document.getElementById('modal-title');
 const closeModalSpans = document.querySelectorAll('.close-modal, .close-modal-btn');
 
+// Filter elements
+const searchInput = document.getElementById('search-input');
+const categoryFilter = document.getElementById('category-filter');
+const tagFilter = document.getElementById('tag-filter');
+const clearFiltersBtn = document.getElementById('clear-filters');
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     checkSession();
+    setupFilterListeners();
 });
 
 // SESSION CHECK
@@ -92,20 +105,94 @@ if (logoutBtn) {
     });
 }
 
+// --- FILTER AND SEARCH FUNCTIONALITY ---
 
-// --- DATA ACCESS (SUPABASE) ---
+function setupFilterListeners() {
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce((e) => {
+            STATE.filters.search = e.target.value.toLowerCase();
+            applyFilters();
+        }, 300));
+    }
+
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', (e) => {
+            STATE.filters.category = e.target.value;
+            applyFilters();
+        });
+    }
+
+    if (tagFilter) {
+        tagFilter.addEventListener('change', (e) => {
+            STATE.filters.tag = e.target.value;
+            applyFilters();
+        });
+    }
+
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', () => {
+            STATE.filters = { search: '', category: '', tag: '' };
+            if (searchInput) searchInput.value = '';
+            if (categoryFilter) categoryFilter.value = '';
+            if (tagFilter) tagFilter.value = '';
+            applyFilters();
+        });
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function applyFilters() {
+    let filtered = [...STATE.news];
+
+    // Search filter
+    if (STATE.filters.search) {
+        filtered = filtered.filter(news => {
+            const searchTerm = STATE.filters.search;
+            const titleMatch = news.title?.toLowerCase().includes(searchTerm);
+            const contentMatch = news.content?.toLowerCase().includes(searchTerm);
+            const tagsMatch = news.tags?.some(tag => tag.toLowerCase().includes(searchTerm));
+            // You could also add author search here if you fetch author info
+            return titleMatch || contentMatch || tagsMatch;
+        });
+    }
+
+    // Category filter
+    if (STATE.filters.category) {
+        filtered = filtered.filter(news => news.category === STATE.filters.category);
+    }
+
+    // Tag filter
+    if (STATE.filters.tag) {
+        filtered = filtered.filter(news => news.tags?.includes(STATE.filters.tag));
+    }
+
+    STATE.filteredNews = filtered;
+    renderNews();
+}
 
 async function fetchNews() {
     try {
         const { data, error } = await window.supabaseClient
             .from('news')
             .select('*')
+            .order('priority', { ascending: false })
             .order('published_at', { ascending: false });
 
         if (error) throw error;
 
         STATE.news = data || [];
-        renderNews();
+        applyFilters(); // Apply filters after fetching
     } catch (error) {
         console.error('Error fetching news:', error.message);
         if (newsFeed) newsFeed.innerHTML = '<p>Error cargando noticias.</p>';
@@ -138,7 +225,7 @@ async function uploadImage(file) {
     }
 }
 
-async function createNews(title, content, imageFile) {
+async function createNews(title, content, imageFile, category, tags, isFeatured, priority) {
     try {
         let imageUrl = null;
         if (imageFile) {
@@ -153,7 +240,11 @@ async function createNews(title, content, imageFile) {
                     title,
                     content,
                     image_url: imageUrl,
-                    author_id: STATE.currentUser.id
+                    author_id: STATE.currentUser.id,
+                    category: category || 'Comunicados',
+                    tags: tags || [],
+                    is_featured: isFeatured || false,
+                    priority: priority || 0
                 }
             ]);
 
@@ -166,7 +257,7 @@ async function createNews(title, content, imageFile) {
     }
 }
 
-async function updateNews(id, title, content, image) {
+async function updateNews(id, title, content, image, category, tags, isFeatured, priority) {
     try {
         let imageUrl = image;
 
@@ -178,7 +269,15 @@ async function updateNews(id, title, content, image) {
 
         const { error } = await window.supabaseClient
             .from('news')
-            .update({ title, content, image_url: imageUrl })
+            .update({
+                title,
+                content,
+                image_url: imageUrl,
+                category: category || 'Comunicados',
+                tags: tags || [],
+                is_featured: isFeatured || false,
+                priority: priority || 0
+            })
             .eq('news_id', id);
 
         if (error) throw error;
@@ -214,19 +313,63 @@ function renderNews() {
     if (!newsFeed) return;
     newsFeed.innerHTML = '';
 
-    STATE.news.forEach(news => {
+    const newsToRender = STATE.filteredNews.length > 0 || Object.values(STATE.filters).some(f => f)
+        ? STATE.filteredNews
+        : STATE.news;
+
+    if (newsToRender.length === 0) {
+        newsFeed.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No se encontraron noticias.</p>';
+        return;
+    }
+
+    newsToRender.forEach(news => {
         const card = document.createElement('div');
-        card.className = 'news-card fade-in';
+        let cardClasses = 'news-card fade-in';
+
+        // Add featured class
+        if (news.is_featured) {
+            cardClasses += ' featured';
+        }
+
+        // Add priority classes
+        if (news.priority >= 8) {
+            cardClasses += ' priority-critical';
+        } else if (news.priority >= 5) {
+            cardClasses += ' priority-high';
+        }
+
+        card.className = cardClasses;
 
         const imageUrl = news.image_url;
         const newsTitle = news.title;
         const newsContent = news.content;
         const newsId = news.news_id;
         const newsDate = news.published_at || news.created_at;
+        const newsCategory = news.category || 'Comunicados';
+        const newsTags = news.tags || [];
 
         const imageHtml = imageUrl
-            ? `<img src="${imageUrl}" alt="${newsTitle}" class="news-image">`
-            : `<div class="news-image" style="background: linear-gradient(45deg, #1e293b, #334155); display:flex; align-items:center; justify-content:center; color:#64748b;"><span>Sin Imagen</span></div>`;
+            ? `<img src="${imageUrl}" alt="${newsTitle}" class="news-image" onclick="showNewsDetail(${newsId})">`
+            : `<div class="news-image" style="background: linear-gradient(45deg, #1e293b, #334155); display:flex; align-items:center; justify-content:center; color:#64748b; cursor: pointer;" onclick="showNewsDetail(${newsId})"><span>Sin Imagen</span></div>`;
+
+        // Category badge with emoji
+        const categoryEmojis = {
+            'Bots': '🤖',
+            'Incidentes': '⚠️',
+            'Mejoras': '✨',
+            'Release': '🚀',
+            'Comunicados': '📢'
+        };
+        const categoryClass = `category-${newsCategory.toLowerCase()}`;
+        const categoryBadge = `<span class="news-category ${categoryClass}">${categoryEmojis[newsCategory] || '📢'} ${newsCategory}</span>`;
+
+        // Tags
+        let tagsHtml = '';
+        if (newsTags.length > 0) {
+            tagsHtml = '<div class="news-tags">' +
+                newsTags.map(tag => `<span class="news-tag">${tag}</span>`).join('') +
+                '</div>';
+        }
 
         let adminActions = '';
         if (STATE.currentUser && STATE.currentUser.role === 'admin') {
@@ -243,15 +386,54 @@ function renderNews() {
         card.innerHTML = `
             ${imageHtml}
             <div class="news-content">
+                ${categoryBadge}
                 <span class="news-date">${dateStr}</span>
                 <h3 class="news-title">${newsTitle}</h3>
                 <p class="news-excerpt">${newsContent}</p>
+                ${tagsHtml}
                 ${adminActions}
             </div>
         `;
         newsFeed.appendChild(card);
     });
 }
+
+// Modal de detalle de noticia
+window.showNewsDetail = function (id) {
+    const news = STATE.news.find(n => n.news_id === id);
+    if (!news) return;
+
+    const dateStr = new Date(news.published_at || news.created_at).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const imageHtml = news.image_url
+        ? `<img src="${news.image_url}" alt="${news.title}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px; margin-bottom: 20px;">`
+        : '';
+
+    const detailModal = document.createElement('div');
+    detailModal.className = 'modal visible';
+    detailModal.innerHTML = `
+        <div class="modal-content glass-panel" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+            <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+            <h2 style="margin-bottom: 10px;">${news.title}</h2>
+            <p style="color: var(--primary-color); font-size: 0.9rem; margin-bottom: 20px;">${dateStr}</p>
+            ${imageHtml}
+            <div style="color: var(--text-muted); line-height: 1.8; white-space: pre-wrap;">${news.content}</div>
+        </div>
+    `;
+
+    detailModal.addEventListener('click', (e) => {
+        if (e.target === detailModal) detailModal.remove();
+    });
+
+    document.body.appendChild(detailModal);
+};
+
 
 // Modal handling
 if (createNewsBtn) {
@@ -270,6 +452,10 @@ window.openEditModal = function (id) {
     document.getElementById('news-id').value = news.news_id;
     document.getElementById('news-title').value = news.title;
     document.getElementById('news-content').value = news.content;
+    document.getElementById('news-category').value = news.category || 'Comunicados';
+    document.getElementById('news-tags').value = (news.tags || []).join(', ');
+    document.getElementById('news-featured').checked = news.is_featured || false;
+    document.getElementById('news-priority').value = news.priority || 0;
     document.getElementById('news-image').value = ''; // Limpiar input file
 
     if (modalTitle) modalTitle.textContent = 'Editar Noticia';
@@ -306,6 +492,11 @@ if (newsForm) {
         const id = document.getElementById('news-id').value;
         const title = document.getElementById('news-title').value;
         const content = document.getElementById('news-content').value;
+        const category = document.getElementById('news-category').value;
+        const tagsInput = document.getElementById('news-tags').value;
+        const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+        const isFeatured = document.getElementById('news-featured').checked;
+        const priority = parseInt(document.getElementById('news-priority').value) || 0;
 
         const imageInput = document.getElementById('news-image');
         const imageFile = imageInput.files.length > 0 ? imageInput.files[0] : null;
@@ -323,9 +514,9 @@ if (newsForm) {
         }
 
         if (id) {
-            await updateNews(parseInt(id), title, content, finalImage);
+            await updateNews(parseInt(id), title, content, finalImage, category, tags, isFeatured, priority);
         } else {
-            await createNews(title, content, finalImage);
+            await createNews(title, content, finalImage, category, tags, isFeatured, priority);
         }
         closeModal();
     });

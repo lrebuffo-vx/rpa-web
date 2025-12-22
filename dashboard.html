@@ -18,6 +18,10 @@
         <section id="dashboard-section" class="active-section">
             <nav class="navbar glass-panel">
                 <div class="logo">Vortex News</div>
+                <div class="nav-links">
+                    <a href="dashboard.html" class="nav-link active">📰 Noticias</a>
+                    <a href="bots.html" class="nav-link">🤖 Bots</a>
+                </div>
                 <div class="user-controls">
                     <span id="welcome-msg">Cargando...</span>
                     <button id="logout-btn" class="btn-text">Cerrar Sesión</button>
@@ -32,6 +36,41 @@
 
                 <div id="admin-controls" class="admin-controls hidden">
                     <button id="create-news-btn" class="btn-primary">+ Nueva Noticia</button>
+                </div>
+
+                <!-- Search and Filters -->
+                <div class="search-filter-section">
+                    <div class="search-bar">
+                        <input type="text" id="search-input"
+                            placeholder="🔍 Buscar por título, contenido, autor o tag...">
+                    </div>
+                    <div class="filter-controls">
+                        <div class="filter-group">
+                            <label>Categoría:</label>
+                            <select id="category-filter">
+                                <option value="">Todas</option>
+                                <option value="Bots">🤖 Bots</option>
+                                <option value="Incidentes">⚠️ Incidentes</option>
+                                <option value="Mejoras">✨ Mejoras</option>
+                                <option value="Release">🚀 Release</option>
+                                <option value="Comunicados">📢 Comunicados</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Tag:</label>
+                            <select id="tag-filter">
+                                <option value="">Todos</option>
+                                <option value="UiPath">UiPath</option>
+                                <option value="Power Automate">Power Automate</option>
+                                <option value="SAP">SAP</option>
+                                <option value="DIAN">DIAN</option>
+                                <option value="Producción">Producción</option>
+                                <option value="Desarrollo">Desarrollo</option>
+                                <option value="QA">QA</option>
+                            </select>
+                        </div>
+                        <button id="clear-filters" class="btn-secondary">Limpiar Filtros</button>
+                    </div>
                 </div>
 
                 <div id="news-feed" class="news-grid">
@@ -54,12 +93,40 @@
                     <input type="text" id="news-title" required>
                 </div>
                 <div class="input-group">
-                    <label for="news-image">Imagen de Portada (Opcional)</label>
-                    <input type="file" id="news-image" accept="image/*">
+                    <label for="news-category">Categoría</label>
+                    <select id="news-category" required>
+                        <option value="Comunicados">📢 Comunicados</option>
+                        <option value="Bots">🤖 Bots</option>
+                        <option value="Incidentes">⚠️ Incidentes</option>
+                        <option value="Mejoras">✨ Mejoras</option>
+                        <option value="Release">🚀 Release</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="news-tags">Tags (separados por coma)</label>
+                    <input type="text" id="news-tags" placeholder="Ej: UiPath, SAP, Producción">
+                    <small style="color: var(--text-muted); font-size: 0.85rem;">Sugerencias: UiPath, Power Automate,
+                        SAP, DIAN, Producción, Desarrollo, QA</small>
+                </div>
+                <div class="input-group">
+                    <label for="news-image">Imagen de Portada</label>
+                    <input type="file" id="news-image" accept="image/*" required>
                 </div>
                 <div class="input-group">
                     <label for="news-content">Contenido</label>
                     <textarea id="news-content" rows="5" required></textarea>
+                </div>
+                <div class="input-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="news-featured">
+                        <span>📌 Destacar esta noticia</span>
+                    </label>
+                </div>
+                <div class="input-group">
+                    <label for="news-priority">Prioridad (0-10)</label>
+                    <input type="number" id="news-priority" min="0" max="10" value="0">
+                    <small style="color: var(--text-muted); font-size: 0.85rem;">Mayor número = mayor prioridad. Use
+                        8-10 para incidentes críticos.</small>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
