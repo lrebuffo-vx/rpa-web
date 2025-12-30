@@ -13,7 +13,11 @@ const googleLoginBtn = document.getElementById('google-login-btn');
 // GOOGLE LOGIN
 if (googleLoginBtn) {
     googleLoginBtn.addEventListener('click', async () => {
+        console.log('Google login button clicked');
+        console.log('Supabase Client:', window.supabaseClient);
+
         try {
+            console.log('Attempting OAuth sign in...');
             const { data, error } = await window.supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
@@ -25,12 +29,20 @@ if (googleLoginBtn) {
                 }
             });
 
-            if (error) throw error;
-            // La redirección es manejada por Supabase
+            if (error) {
+                console.error('Supabase OAuth Error:', error);
+                throw error;
+            }
+
+            console.log('OAuth initiated, data:', data);
+
         } catch (error) {
+            console.error('Catch Error:', error);
             showError(loginError, error.message || 'Error al iniciar con Google');
         }
     });
+} else {
+    console.error('Google login button NOT found in DOM');
 }
 
 // LOGIN
