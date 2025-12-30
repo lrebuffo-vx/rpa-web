@@ -23,6 +23,7 @@
                     <a href="bots.html" class="nav-link">🤖 Bots</a>
                 </div>
                 <div class="user-controls">
+                    <button id="manage-subscriptions-btn" class="btn-text" title="Configurar Notificaciones">🔔</button>
                     <span id="welcome-msg">Cargando...</span>
                     <button id="logout-btn" class="btn-text">Cerrar Sesión</button>
                 </div>
@@ -136,9 +137,72 @@
         </div>
     </div>
 
+    <!-- Modal for Subscriptions -->
+    <div id="subscription-modal" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-height: 90vh; overflow-y: auto;">
+            <span class="close-modal">&times;</span>
+            <h2>🔔 Configurar Suscripciones</h2>
+            <form id="subscription-form">
+                <div class="subscription-section">
+                    <h3>Tipos de Notificaciones</h3>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sub-news">
+                            <span>📰 Nuevas noticias publicadas</span>
+                        </label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sub-bot-status">
+                            <span>🤖 Cambios de estado en bots</span>
+                        </label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sub-incidents">
+                            <span>⚠️ Nuevos incidentes reportados</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="subscription-section">
+                    <h3>Categorías de Noticias</h3>
+                    <p class="hint">Selecciona las categorías de noticias que te interesan:</p>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Bots"> 🤖 Bots</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Incidentes"> ⚠️
+                            Incidentes</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Mejoras"> ✨ Mejoras</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Release"> 🚀 Release</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Comunicados"> 📢
+                            Comunicados</label>
+                    </div>
+                </div>
+
+                <!-- Canales de notificación removidos según requerimiento: Solo Push automático -->
+
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Suscripciones</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/config.js"></script>
+    <script src="assets/js/notifications.js"></script>
     <script src="assets/js/dashboard.js"></script>
 </body>
 

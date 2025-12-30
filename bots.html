@@ -24,6 +24,7 @@
                     <a href="bots.html" class="nav-link active">🤖 Bots</a>
                 </div>
                 <div class="user-controls">
+                    <button id="manage-subscriptions-btn" class="btn-text" title="Configurar Notificaciones">🔔</button>
                     <span id="welcome-msg">Cargando...</span>
                     <button id="logout-btn" class="btn-text">Cerrar Sesión</button>
                 </div>
@@ -39,7 +40,6 @@
                 <div id="admin-controls" class="admin-controls hidden">
                     <button id="create-bot-btn" class="btn-primary">+ Nuevo Bot</button>
                     <button id="create-incident-btn" class="btn-secondary">📋 Reportar Incidente</button>
-                    <button id="manage-subscriptions-btn" class="btn-secondary">🔔 Mis Suscripciones</button>
                 </div>
 
                 <!-- Status Summary -->
@@ -105,6 +105,12 @@
                             <option value="QA">QA</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label>Cliente:</label>
+                        <select id="client-filter">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
                     <button id="clear-bot-filters" class="btn-secondary">Limpiar Filtros</button>
                 </div>
 
@@ -164,6 +170,10 @@
                             <option value="QA">QA</option>
                         </select>
                     </div>
+                </div>
+                <div class="input-group">
+                    <label for="bot-client">Cliente *</label>
+                    <input type="text" id="bot-client" placeholder="Nombre del cliente" required>
                 </div>
                 <div class="input-group">
                     <label for="bot-status">Estado *</label>
@@ -303,31 +313,8 @@
                     </div>
                 </div>
 
-                <div class="subscription-section">
-                    <h3>Canales de Notificación</h3>
-                    <div class="checkbox-group">
-                        <label>
-                            <input type="checkbox" id="notify-email" checked>
-                            <span>📧 Email</span>
-                        </label>
-                    </div>
-                    <div class="checkbox-group">
-                        <label>
-                            <input type="checkbox" id="notify-teams">
-                            <span>💬 Microsoft Teams</span>
-                        </label>
-                    </div>
-                    <div class="input-group" id="teams-webhook-group" style="display: none; margin-left: 30px;">
-                        <label for="teams-webhook">Teams Webhook URL</label>
-                        <input type="url" id="teams-webhook" placeholder="https://...">
-                        <small style="color: var(--text-muted); font-size: 0.85rem;">
-                            <a href="https://learn.microsoft.com/es-es/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook"
-                                target="_blank" style="color: var(--primary-color);">
-                                ¿Cómo obtener un webhook de Teams?
-                            </a>
-                        </small>
-                    </div>
-                </div>
+                <!-- Canales de notificación removidos según requerimiento: Solo Push automático -->
+
 
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
@@ -340,6 +327,7 @@
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/config.js"></script>
+    <script src="assets/js/notifications.js"></script>
     <script src="assets/js/bots.js"></script>
 </body>
 

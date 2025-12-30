@@ -1,23 +1,24 @@
 // Bots Monitoring System - Main JavaScript
 
 // State Management
-const STATE = {
+window.STATE = {
     currentUser: null,
     bots: [],
     filteredBots: [],
     incidents: [],
     filteredIncidents: [],
-    subscription: null,
     filters: {
         system: '',
         status: '',
-        environment: ''
+        environment: '',
+        client: ''
     },
     timelineFilters: {
         botId: '',
         period: '30'
     }
 };
+const STATE = window.STATE;
 
 // DOM Elements
 const welcomeMsg = document.getElementById('welcome-msg');
@@ -29,22 +30,20 @@ const adminControls = document.getElementById('admin-controls');
 // Buttons
 const createBotBtn = document.getElementById('create-bot-btn');
 const createIncidentBtn = document.getElementById('create-incident-btn');
-const manageSubscriptionsBtn = document.getElementById('manage-subscriptions-btn');
 
 // Modals
 const botModal = document.getElementById('bot-modal');
 const incidentModal = document.getElementById('incident-modal');
-const subscriptionModal = document.getElementById('subscription-modal');
 
 // Forms
 const botForm = document.getElementById('bot-form');
 const incidentForm = document.getElementById('incident-form');
-const subscriptionForm = document.getElementById('subscription-form');
 
 // Filters
 const systemFilter = document.getElementById('system-filter');
 const statusFilter = document.getElementById('status-filter');
 const environmentFilter = document.getElementById('environment-filter');
+const clientFilter = document.getElementById('client-filter');
 const clearBotFilters = document.getElementById('clear-bot-filters');
 const timelineBotFilter = document.getElementById('timeline-bot-filter');
 const timelinePeriodFilter = document.getElementById('timeline-period-filter');
@@ -76,8 +75,7 @@ async function checkSession() {
     await fetchUserProfile(session.user);
     await Promise.all([
         fetchBots(),
-        fetchIncidents(),
-        fetchUserSubscription()
+        fetchIncidents()
     ]);
 }
 
@@ -113,7 +111,7 @@ async function fetchUserProfile(authUser) {
 function updateDashboardUI() {
     if (!STATE.currentUser) return;
 
-    welcomeMsg.textContent = `Hola, ${STATE.currentUser.username}`;
+    welcomeMsg.textContent = `Hola, ${STATE.currentUser.username} (${STATE.currentUser.role})`;
 
     if (STATE.currentUser.role === 'admin') {
         if (adminControls) adminControls.classList.remove('hidden');
@@ -156,10 +154,18 @@ function setupEventListeners() {
 
     if (clearBotFilters) {
         clearBotFilters.addEventListener('click', () => {
-            STATE.filters = { system: '', status: '', environment: '' };
+            STATE.filters = { system: '', status: '', environment: '', client: '' };
             systemFilter.value = '';
             statusFilter.value = '';
             environmentFilter.value = '';
+            if (clientFilter) clientFilter.value = '';
+            applyBotFilters();
+        });
+    }
+
+    if (clientFilter) {
+        clientFilter.addEventListener('change', () => {
+            STATE.filters.client = clientFilter.value;
             applyBotFilters();
         });
     }
@@ -198,14 +204,6 @@ function setupEventListeners() {
             openModal(incidentModal);
         });
     }
-
-    if (manageSubscriptionsBtn) {
-        manageSubscriptionsBtn.addEventListener('click', () => {
-            loadSubscriptionForm();
-            openModal(subscriptionModal);
-        });
-    }
-
     // Form submissions
     if (botForm) {
         botForm.addEventListener('submit', handleBotSubmit);
@@ -215,27 +213,13 @@ function setupEventListeners() {
         incidentForm.addEventListener('submit', handleIncidentSubmit);
     }
 
-    if (subscriptionForm) {
-        subscriptionForm.addEventListener('submit', handleSubscriptionSubmit);
-    }
-
     // Close modals
     closeModalSpans.forEach(span => {
         span.addEventListener('click', () => {
             closeModal(botModal);
             closeModal(incidentModal);
-            closeModal(subscriptionModal);
         });
     });
-
-    // Teams webhook toggle
-    const notifyTeams = document.getElementById('notify-teams');
-    const teamsWebhookGroup = document.getElementById('teams-webhook-group');
-    if (notifyTeams && teamsWebhookGroup) {
-        notifyTeams.addEventListener('change', (e) => {
-            teamsWebhookGroup.style.display = e.target.checked ? 'block' : 'none';
-        });
-    }
 }
 
 // FETCH DATA
@@ -253,6 +237,7 @@ async function fetchBots() {
         applyBotFilters();
         updateStatusSummary();
         populateTimelineBotFilter();
+        populateClientFilter();
     } catch (error) {
         console.error('Error fetching bots:', error.message);
         if (botsGrid) botsGrid.innerHTML = '<p>Error cargando bots.</p>';
@@ -279,25 +264,7 @@ async function fetchIncidents() {
     }
 }
 
-async function fetchUserSubscription() {
-    if (!STATE.currentUser) return;
-
-    try {
-        const { data, error } = await window.supabaseClient
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', STATE.currentUser.id)
-            .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-            throw error;
-        }
-
-        STATE.subscription = data;
-    } catch (error) {
-        console.error('Error fetching subscription:', error.message);
-    }
-}
+// (Subscription moved to notifications.js)
 
 // FILTERS
 function applyBotFilters() {
@@ -313,6 +280,10 @@ function applyBotFilters() {
 
     if (STATE.filters.environment) {
         filtered = filtered.filter(bot => bot.environment === STATE.filters.environment);
+    }
+
+    if (STATE.filters.client) {
+        filtered = filtered.filter(bot => bot.client === STATE.filters.client);
     }
 
     STATE.filteredBots = filtered;
@@ -429,6 +400,12 @@ function createBotCard(bot) {
                 <span>⏰</span>
                 <span><strong>Última actualización:</strong> ${lastUpdate}</span>
             </div>
+            ${bot.client ? `
+                <div class="bot-meta-item">
+                    <span>🏢</span>
+                    <span><strong>Cliente:</strong> ${bot.client}</span>
+                </div>
+            ` : ''}
             ${bot.responsible_name ? `
                 <div class="bot-meta-item">
                     <span>👤</span>
@@ -568,6 +545,23 @@ function populateTimelineBotFilter() {
     });
 }
 
+function populateClientFilter() {
+    if (!clientFilter) return;
+
+    const clients = [...new Set(STATE.bots.map(bot => bot.client).filter(c => c))];
+    const currentValue = clientFilter.value;
+
+    clientFilter.innerHTML = '<option value="">Todos</option>';
+    clients.sort().forEach(client => {
+        const option = document.createElement('option');
+        option.value = client;
+        option.textContent = client;
+        clientFilter.appendChild(option);
+    });
+
+    clientFilter.value = currentValue;
+}
+
 // MODAL FUNCTIONS
 function openModal(modal) {
     if (modal) {
@@ -596,6 +590,7 @@ async function handleBotSubmit(e) {
         description: document.getElementById('bot-description').value,
         system: document.getElementById('bot-system').value,
         environment: document.getElementById('bot-environment').value,
+        client: document.getElementById('bot-client').value,
         status: document.getElementById('bot-status').value,
         responsible_name: document.getElementById('bot-responsible-name').value,
         responsible_email: document.getElementById('bot-responsible-email').value
@@ -629,6 +624,13 @@ async function updateBot(id, botData) {
         .eq('bot_id', id);
 
     if (error) throw error;
+
+    // Disparar notificación si cambió el estado
+    const oldBot = STATE.bots.find(b => b.bot_id === id);
+    if (oldBot && oldBot.status !== botData.status && window.triggerNotification) {
+        window.triggerNotification('bot_status', { name: botData.name, status: botData.status });
+    }
+
     await fetchBots();
 }
 
@@ -641,6 +643,7 @@ window.openEditBotModal = function (id) {
     document.getElementById('bot-description').value = bot.description || '';
     document.getElementById('bot-system').value = bot.system || '';
     document.getElementById('bot-environment').value = bot.environment || 'Producción';
+    document.getElementById('bot-client').value = bot.client || '';
     document.getElementById('bot-status').value = bot.status;
     document.getElementById('bot-responsible-name').value = bot.responsible_name || '';
     document.getElementById('bot-responsible-email').value = bot.responsible_email || '';
@@ -700,6 +703,12 @@ async function createIncident(incidentData) {
         .insert([incidentData]);
 
     if (error) throw error;
+
+    // Disparar notificación
+    if (window.triggerNotification) {
+        window.triggerNotification('incident', { title: incidentData.title, bot_id: incidentData.bot_id });
+    }
+
     await fetchIncidents();
 }
 
@@ -749,82 +758,4 @@ window.deleteIncident = async function (id) {
     }
 };
 
-// SUBSCRIPTION MANAGEMENT
-function loadSubscriptionForm() {
-    if (!STATE.subscription) {
-        // Default values
-        document.getElementById('sub-news').checked = false;
-        document.getElementById('sub-bot-status').checked = false;
-        document.getElementById('sub-incidents').checked = false;
-        document.getElementById('notify-email').checked = true;
-        document.getElementById('notify-teams').checked = false;
-        document.getElementById('teams-webhook').value = '';
-        document.querySelectorAll('.news-category-check').forEach(cb => cb.checked = false);
-        return;
-    }
-
-    const sub = STATE.subscription;
-    document.getElementById('sub-news').checked = sub.subscribe_news || false;
-    document.getElementById('sub-bot-status').checked = sub.subscribe_bot_status || false;
-    document.getElementById('sub-incidents').checked = sub.subscribe_incidents || false;
-    document.getElementById('notify-email').checked = sub.notify_email || false;
-    document.getElementById('notify-teams').checked = sub.notify_teams || false;
-    document.getElementById('teams-webhook').value = sub.teams_webhook_url || '';
-
-    // Show/hide teams webhook
-    const teamsWebhookGroup = document.getElementById('teams-webhook-group');
-    if (teamsWebhookGroup) {
-        teamsWebhookGroup.style.display = sub.notify_teams ? 'block' : 'none';
-    }
-
-    // News categories
-    const categories = sub.news_categories || [];
-    document.querySelectorAll('.news-category-check').forEach(cb => {
-        cb.checked = categories.includes(cb.value);
-    });
-}
-
-async function handleSubscriptionSubmit(e) {
-    e.preventDefault();
-
-    const selectedCategories = Array.from(document.querySelectorAll('.news-category-check:checked'))
-        .map(cb => cb.value);
-
-    const subscriptionData = {
-        user_id: STATE.currentUser.id,
-        email: STATE.currentUser.email,
-        subscribe_news: document.getElementById('sub-news').checked,
-        subscribe_bot_status: document.getElementById('sub-bot-status').checked,
-        subscribe_incidents: document.getElementById('sub-incidents').checked,
-        news_categories: selectedCategories,
-        notify_email: document.getElementById('notify-email').checked,
-        notify_teams: document.getElementById('notify-teams').checked,
-        teams_webhook_url: document.getElementById('teams-webhook').value,
-        is_active: true
-    };
-
-    try {
-        if (STATE.subscription) {
-            // Update existing
-            const { error } = await window.supabaseClient
-                .from('subscriptions')
-                .update(subscriptionData)
-                .eq('subscription_id', STATE.subscription.subscription_id);
-
-            if (error) throw error;
-        } else {
-            // Create new
-            const { error } = await window.supabaseClient
-                .from('subscriptions')
-                .insert([subscriptionData]);
-
-            if (error) throw error;
-        }
-
-        await fetchUserSubscription();
-        closeModal(subscriptionModal);
-        alert('Suscripciones guardadas exitosamente');
-    } catch (error) {
-        alert('Error al guardar suscripciones: ' + error.message);
-    }
-}
+// SUBSCRIPTION MANAGEMENT moved to notifications.js

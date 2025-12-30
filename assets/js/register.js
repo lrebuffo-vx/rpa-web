@@ -17,6 +17,12 @@ registerForm.addEventListener('submit', async (e) => {
         return;
     }
 
+    // DOMAIN VALIDATION
+    if (!email.endsWith('@vortex-it.com')) {
+        showError('Solo se permite el registro con correos @vortex-it.com');
+        return;
+    }
+
     try {
         // Registrar Usuario
         const { data, error } = await supabaseClient.auth.signUp({

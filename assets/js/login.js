@@ -8,11 +8,42 @@ document.addEventListener('DOMContentLoaded', () => {
     checkSession();
 });
 
+const googleLoginBtn = document.getElementById('google-login-btn');
+
+// GOOGLE LOGIN
+if (googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', async () => {
+        try {
+            const { data, error } = await window.supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'consent',
+                    },
+                    redirectTo: window.location.origin + '/dashboard.html'
+                }
+            });
+
+            if (error) throw error;
+            // La redirección es manejada por Supabase
+        } catch (error) {
+            showError(loginError, error.message || 'Error al iniciar con Google');
+        }
+    });
+}
+
 // LOGIN
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = e.target.email.value.trim();
     const password = e.target.password.value.trim();
+
+    // DOMAIN VALIDATION
+    if (!email.endsWith('@vortex-it.com')) {
+        showError(loginError, 'Solo se permiten correos de @vortex-it.com');
+        return;
+    }
 
     try {
         const { data, error } = await window.supabaseClient.auth.signInWithPassword({

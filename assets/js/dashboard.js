@@ -1,5 +1,5 @@
 // State Management
-const STATE = {
+window.STATE = {
     currentUser: null,
     news: [],
     filteredNews: [],
@@ -9,6 +9,7 @@ const STATE = {
         tag: ''
     }
 };
+const STATE = window.STATE;
 
 // DOM Elements
 const welcomeMsg = document.getElementById('welcome-msg');
@@ -46,6 +47,14 @@ async function checkSession() {
 
     if (error || !session) {
         // Si no hay sesión, volver al login
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // DOMAIN CHECK
+    if (!session.user.email.endsWith('@vortex-it.com')) {
+        await window.supabaseClient.auth.signOut();
+        alert('Acceso restringido: Solo correos @vortex-it.com');
         window.location.href = 'index.html';
         return;
     }
@@ -249,6 +258,12 @@ async function createNews(title, content, imageFile, category, tags, isFeatured,
             ]);
 
         if (error) throw error;
+
+        // Disparar notificación
+        if (window.triggerNotification) {
+            window.triggerNotification('news', { title, category });
+        }
+
         fetchNews();
 
     } catch (error) {
