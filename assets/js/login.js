@@ -41,7 +41,7 @@ function attachEventListeners() {
                             prompt: 'consent',
                         },
                         // Ensure full URL is passed
-                        redirectTo: window.location.origin
+                        redirectTo: window.location.origin + '/rpa-web/dashboard.html'
                     }
                 });
 
