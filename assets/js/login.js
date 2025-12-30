@@ -1,77 +1,96 @@
-// DOM Elements
-const loginSection = document.getElementById('login-section');
-const loginForm = document.getElementById('login-form');
-const loginError = document.getElementById('login-error');
+// DOM Elements variable declarations (initialized inside DOMContentLoaded)
+let loginSection;
+let loginForm;
+let loginError;
+let googleLoginBtn;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize DOM elements
+    loginSection = document.getElementById('login-section');
+    loginForm = document.getElementById('login-form');
+    loginError = document.getElementById('login-error');
+    googleLoginBtn = document.getElementById('google-login-btn');
+
+    // Run session check
     checkSession();
+
+    // Attach Event Listeners
+    attachEventListeners();
 });
 
-const googleLoginBtn = document.getElementById('google-login-btn');
+function attachEventListeners() {
+    // GOOGLE LOGIN
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', async () => {
+            console.log('Google login button clicked');
 
-// GOOGLE LOGIN
-if (googleLoginBtn) {
-    googleLoginBtn.addEventListener('click', async () => {
-        console.log('Google login button clicked');
-        console.log('Supabase Client:', window.supabaseClient);
-
-        try {
-            console.log('Attempting OAuth sign in...');
-            const { data, error } = await window.supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'consent',
-                    },
-                    redirectTo: window.location.origin + '/dashboard.html'
-                }
-            });
-
-            if (error) {
-                console.error('Supabase OAuth Error:', error);
-                throw error;
+            if (!window.supabaseClient) {
+                console.error('Supabase Client not initialized');
+                showError(loginError, 'Error de configuración: Supabase no disponible');
+                return;
             }
 
-            console.log('OAuth initiated, data:', data);
+            try {
+                console.log('Attempting OAuth sign in...');
+                const { data, error } = await window.supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        queryParams: {
+                            access_type: 'offline',
+                            prompt: 'consent',
+                        },
+                        // Ensure full URL is passed
+                        redirectTo: window.location.origin + '/dashboard.html'
+                    }
+                });
 
-        } catch (error) {
-            console.error('Catch Error:', error);
-            showError(loginError, error.message || 'Error al iniciar con Google');
-        }
-    });
-} else {
-    console.error('Google login button NOT found in DOM');
-}
+                if (error) {
+                    console.error('Supabase OAuth Error:', error);
+                    throw error;
+                }
 
-// LOGIN
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = e.target.email.value.trim();
-    const password = e.target.password.value.trim();
+                console.log('OAuth initiated, data:', data);
 
-    // DOMAIN VALIDATION
-    if (!email.endsWith('@vortex-it.com')) {
-        showError(loginError, 'Solo se permiten correos de @vortex-it.com');
-        return;
-    }
-
-    try {
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: password
+            } catch (error) {
+                console.error('Catch Error:', error);
+                showError(loginError, error.message || 'Error al iniciar con Google');
+            }
         });
-
-        if (error) throw error;
-
-        // Login exitoso, redirigir al Dashboard
-        window.location.href = 'dashboard.html';
-
-    } catch (error) {
-        showError(loginError, error.message || 'Error al iniciar sesión');
+    } else {
+        console.error('Google login button NOT found in DOM during initialization');
     }
-});
+
+    // LOGIN FORM
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = e.target.email.value.trim();
+            const password = e.target.password.value.trim();
+
+            // DOMAIN VALIDATION
+            if (!email.endsWith('@vortex-it.com')) {
+                showError(loginError, 'Solo se permiten correos de @vortex-it.com');
+                return;
+            }
+
+            try {
+                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                // Login exitoso, redirigir al Dashboard
+                window.location.href = 'dashboard.html';
+
+            } catch (error) {
+                showError(loginError, error.message || 'Error al iniciar sesión');
+            }
+        });
+    }
+}
 
 // SESSION CHECK
 async function checkSession() {
