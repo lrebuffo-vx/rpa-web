@@ -70,18 +70,38 @@ async function fetchUserProfile(authUser) {
     // Lógica simple de roles (puedes mejorar esto consultando tu tabla)
 
     // Consulta de rol real en la base de datos (si existe la tabla users y el usuario tiene rol asignado)
+    // Consulta de rol real en la base de datos
     try {
-        const { data } = await window.supabaseClient
+        const { data, error } = await window.supabaseClient
             .from('users')
             .select('role')
             .eq('id', authUser.id)
             .single();
 
-        if (data && data.role) {
+        if (error || !data) {
+            // Si el usuario no existe en la tabla pública (ej. primer login SSO), lo creamos
+            console.log('Usuario no encontrado en public.users, creando...');
+
+            const { error: insertError } = await window.supabaseClient
+                .from('users')
+                .insert([
+                    {
+                        id: authUser.id,
+                        email: authUser.email,
+                        role: 'user' // Default role
+                    }
+                ]);
+
+            if (insertError) {
+                console.error('Error creando usuario en public.users:', insertError);
+            } else {
+                console.log('Usuario creado exitosamente en public.users');
+            }
+        } else if (data.role) {
             role = data.role;
         }
     } catch (e) {
-        // Si falla (ej. usuario no esta en tabla publica aun), se mantiene como 'user'
+        console.error('Error fetching/creating user profile:', e);
     }
 
     STATE.currentUser = {
