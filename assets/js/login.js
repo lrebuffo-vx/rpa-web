@@ -61,33 +61,11 @@ function attachEventListeners() {
         console.error('Google login button NOT found in DOM during initialization');
     }
 
-    // LOGIN FORM
+    // LOGIN FORM - Hidden/Removed
     if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
+        loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = e.target.email.value.trim();
-            const password = e.target.password.value.trim();
-
-            // DOMAIN VALIDATION
-            if (!email.endsWith('@vortex-it.com')) {
-                showError(loginError, 'Solo se permiten correos de @vortex-it.com');
-                return;
-            }
-
-            try {
-                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                // Login exitoso, redirigir al Dashboard
-                window.location.href = 'dashboard.html';
-
-            } catch (error) {
-                showError(loginError, error.message || 'Error al iniciar sesión');
-            }
+            // No-op or handle if needed, but fields are gone
         });
     }
 }
