@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://urxeexrhcxmqngjpifnv.supabase.co; worker-src 'self';">
+    <title>Monitoreo de Bots | Vortex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/bots.css">
+</head>
+
+<body class="dashboard-body">
+
+    <div id="app">
+        <!-- Main Bots Section -->
+        <section id="bots-section" class="active-section">
+            <nav class="navbar glass-panel">
+                <div class="logo">Vortex Bots</div>
+                <div class="nav-links">
+                    <a href="dashboard.html" class="nav-link">📰 Noticias</a>
+                    <a href="bots.html" class="nav-link active">🤖 Bots</a>
+                </div>
+                <div class="user-controls">
+                    <button id="manage-subscriptions-btn" class="btn-text" title="Configurar Notificaciones">🔔</button>
+                    <span id="welcome-msg">Cargando...</span>
+                    <button id="logout-btn" class="btn-text">Cerrar Sesión</button>
+                </div>
+            </nav>
+
+            <div class="content-wrapper">
+                <header class="page-header">
+                    <h2>Monitoreo de Bots y Procesos</h2>
+                    <p>Estado en tiempo real de todos los procesos automatizados</p>
+                </header>
+
+                <!-- Admin Controls -->
+                <div id="admin-controls" class="admin-controls hidden">
+                    <button id="create-bot-btn" class="btn-primary">+ Nuevo Bot</button>
+                    <button id="create-incident-btn" class="btn-secondary">📋 Reportar Incidente</button>
+                </div>
+
+                <!-- Status Summary -->
+                <div class="status-summary">
+                    <div class="status-card operativo">
+                        <div class="status-icon">🟢</div>
+                        <div class="status-info">
+                            <h3 id="count-operativo">0</h3>
+                            <p>Operativos</p>
+                        </div>
+                    </div>
+                    <div class="status-card observacion">
+                        <div class="status-icon">🟡</div>
+                        <div class="status-info">
+                            <h3 id="count-observacion">0</h3>
+                            <p>En Observación</p>
+                        </div>
+                    </div>
+                    <div class="status-card caido">
+                        <div class="status-icon">🔴</div>
+                        <div class="status-info">
+                            <h3 id="count-caido">0</h3>
+                            <p>Caídos</p>
+                        </div>
+                    </div>
+                    <div class="status-card total">
+                        <div class="status-icon">📊</div>
+                        <div class="status-info">
+                            <h3 id="count-total">0</h3>
+                            <p>Total Bots</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <label>Sistema:</label>
+                        <select id="system-filter">
+                            <option value="">Todos</option>
+                            <option value="SAP">SAP</option>
+                            <option value="DIAN">DIAN</option>
+                            <option value="Power BI">Power BI</option>
+                            <option value="UiPath">UiPath</option>
+                            <option value="Power Automate">Power Automate</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Estado:</label>
+                        <select id="status-filter">
+                            <option value="">Todos</option>
+                            <option value="operativo">🟢 Operativo</option>
+                            <option value="observacion">🟡 En Observación</option>
+                            <option value="caido">🔴 Caído</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Ambiente:</label>
+                        <select id="environment-filter">
+                            <option value="">Todos</option>
+                            <option value="Producción">Producción</option>
+                            <option value="Desarrollo">Desarrollo</option>
+                            <option value="QA">QA</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Cliente:</label>
+                        <select id="client-filter">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <button id="clear-bot-filters" class="btn-secondary">Limpiar Filtros</button>
+                </div>
+
+                <!-- Bots Grid -->
+                <div id="bots-grid" class="bots-grid">
+                    <div class="loading-spinner">Cargando bots...</div>
+                </div>
+
+                <!-- Incidents Timeline Section -->
+                <div class="section-header">
+                    <h2>📅 Historial de Incidentes</h2>
+                    <div class="timeline-filters">
+                        <select id="timeline-bot-filter">
+                            <option value="">Todos los Bots</option>
+                        </select>
+                        <select id="timeline-period-filter">
+                            <option value="7">Últimos 7 días</option>
+                            <option value="30" selected>Últimos 30 días</option>
+                            <option value="90">Últimos 90 días</option>
+                            <option value="all">Todo el historial</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="incidents-timeline" class="incidents-timeline">
+                    <div class="loading-spinner">Cargando incidentes...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for Bot Create/Edit -->
+    <div id="bot-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <span class="close-modal">&times;</span>
+            <h2 id="bot-modal-title">Nuevo Bot</h2>
+            <form id="bot-form">
+                <input type="hidden" id="bot-id">
+                <div class="input-group">
+                    <label for="bot-name">Nombre del Bot *</label>
+                    <input type="text" id="bot-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="bot-description">Descripción</label>
+                    <textarea id="bot-description" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="bot-system">Sistema *</label>
+                        <input type="text" id="bot-system" placeholder="Ej: SAP, DIAN, UiPath" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="bot-environment">Ambiente *</label>
+                        <select id="bot-environment" required>
+                            <option value="Producción">Producción</option>
+                            <option value="Desarrollo">Desarrollo</option>
+                            <option value="QA">QA</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="bot-client">Cliente *</label>
+                    <input type="text" id="bot-client" placeholder="Nombre del cliente" required>
+                </div>
+                <div class="input-group">
+                    <label for="bot-status">Estado *</label>
+                    <select id="bot-status" required>
+                        <option value="operativo">🟢 Operativo</option>
+                        <option value="observacion">🟡 En Observación</option>
+                        <option value="caido">🔴 Caído</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="bot-responsible-name">Responsable</label>
+                        <input type="text" id="bot-responsible-name" placeholder="Nombre completo">
+                    </div>
+                    <div class="input-group">
+                        <label for="bot-responsible-email">Email del Responsable</label>
+                        <input type="email" id="bot-responsible-email" placeholder="email@empresa.com">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Incident Create/Edit -->
+    <div id="incident-modal" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 700px;">
+            <span class="close-modal">&times;</span>
+            <h2 id="incident-modal-title">Reportar Incidente</h2>
+            <form id="incident-form">
+                <input type="hidden" id="incident-id">
+                <div class="input-group">
+                    <label for="incident-bot">Bot Afectado *</label>
+                    <select id="incident-bot" required>
+                        <option value="">Seleccionar bot...</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="incident-title">Título del Incidente *</label>
+                    <input type="text" id="incident-title" required>
+                </div>
+                <div class="input-group">
+                    <label for="incident-description">Descripción</label>
+                    <textarea id="incident-description" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="incident-impact">Nivel de Impacto *</label>
+                        <select id="incident-impact" required>
+                            <option value="Bajo">Bajo</option>
+                            <option value="Medio" selected>Medio</option>
+                            <option value="Alto">Alto</option>
+                            <option value="Crítico">Crítico</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="incident-status">Estado *</label>
+                        <select id="incident-status" required>
+                            <option value="Abierto" selected>Abierto</option>
+                            <option value="En Progreso">En Progreso</option>
+                            <option value="Resuelto">Resuelto</option>
+                            <option value="Cerrado">Cerrado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="incident-root-cause">Causa Raíz</label>
+                    <textarea id="incident-root-cause" rows="2" placeholder="¿Qué causó el incidente?"></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="incident-resolution">Resolución</label>
+                    <textarea id="incident-resolution" rows="2" placeholder="¿Cómo se resolvió?"></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="incident-lessons">Lecciones Aprendidas</label>
+                    <textarea id="incident-lessons" rows="2"
+                        placeholder="¿Qué aprendimos de este incidente?"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Incidente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Subscriptions -->
+    <div id="subscription-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <span class="close-modal">&times;</span>
+            <h2>🔔 Configurar Suscripciones</h2>
+            <form id="subscription-form">
+                <div class="subscription-section">
+                    <h3>Tipos de Notificaciones</h3>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sub-news">
+                            <span>📰 Nuevas noticias publicadas</span>
+                        </label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sub-bot-status">
+                            <span>🤖 Cambios de estado en bots</span>
+                        </label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sub-incidents">
+                            <span>⚠️ Nuevos incidentes reportados</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="subscription-section">
+                    <h3>Categorías de Noticias</h3>
+                    <p class="hint">Selecciona las categorías de noticias que te interesan:</p>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Bots"> 🤖 Bots</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Incidentes"> ⚠️
+                            Incidentes</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Mejoras"> ✨ Mejoras</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Release"> 🚀 Release</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="news-category-check" value="Comunicados"> 📢
+                            Comunicados</label>
+                    </div>
+                </div>
+
+                <!-- Canales de notificación removidos según requerimiento: Solo Push automático -->
+
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Suscripciones</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/bots.js"></script>
+</body>
+
+</html>
