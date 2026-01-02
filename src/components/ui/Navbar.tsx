@@ -6,14 +6,14 @@ import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { Bell, LogOut, Newspaper, LibraryBig, LayoutDashboard } from 'lucide-react'
 import { useState } from 'react'
-import { SubscriptionModal } from '@/components/notifications/SubscriptionModal'
-import { useNotifications } from '@/hooks/useNotifications'
+// import { SubscriptionModal } from '@/components/notifications/SubscriptionModal'
+// import { useNotifications } from '@/hooks/useNotifications'
 
 export function Navbar() {
     const pathname = usePathname()
     const { user, signOut } = useAuth()
-    const { permission, requestPermission } = useNotifications()
-    const [isSubsOpen, setIsSubsOpen] = useState(false)
+    // const { permission, requestPermission } = useNotifications()
+    // const [isSubsOpen, setIsSubsOpen] = useState(false)
 
     const links = [
         { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,7 +21,7 @@ export function Navbar() {
         // { href: '/bots', label: 'Bots', icon: LibraryBig },
     ]
 
-    const handleOpenSubs = async () => {
+    /* const handleOpenSubs = async () => {
         if (permission === 'default') {
             const result = await requestPermission()
             if (result === 'granted') {
@@ -30,7 +30,7 @@ export function Navbar() {
         } else {
             setIsSubsOpen(true)
         }
-    }
+    } */
 
     return (
         <>
@@ -61,7 +61,7 @@ export function Navbar() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button
+                        {/* <button
                             className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors relative"
                             title="Suscripciones"
                             onClick={handleOpenSubs}
@@ -73,7 +73,7 @@ export function Navbar() {
                             {permission === 'denied' && (
                                 <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
                             )}
-                        </button>
+                        </button> */}
 
                         <div className="hidden md:flex flex-col items-end mr-2">
                             <span className="text-sm font-medium text-white">
@@ -94,7 +94,7 @@ export function Navbar() {
                     </div>
                 </div>
             </nav>
-            <SubscriptionModal isOpen={isSubsOpen} onClose={() => setIsSubsOpen(false)} />
+            {/* <SubscriptionModal isOpen={isSubsOpen} onClose={() => setIsSubsOpen(false)} /> */}
         </>
     )
 }

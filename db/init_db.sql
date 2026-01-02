@@ -245,3 +245,99 @@ INSERT INTO public.bots (name, description, system, environment, client, status)
 ('Bot Facturación', 'Proceso de facturación automática', 'SAP', 'Producción', 'Interno', 'operativo'),
 ('Bot Conciliación', 'Conciliación bancaria diaria', 'SAP', 'Producción', 'Cliente A', 'operativo'),
 ('Bot Reportes', 'Generación de reportes de cierre', 'PowerBi', 'Producción', 'Cliente B', 'caido');
+
+-- 12. TIME ENTRIES (RPA Activities)
+CREATE TABLE public.time_entries (
+    id BIGINT PRIMARY KEY, -- ID from Excel
+    date DATE, -- Allow nulls as per user request
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    project_name TEXT,
+    user_full_name TEXT,
+    description TEXT,
+    project_category TEXT,
+    company TEXT,
+    task_list TEXT,
+    task_name TEXT,
+    parent_task TEXT,
+    is_sub_task BOOLEAN DEFAULT false,
+    is_billable BOOLEAN DEFAULT false,
+    invoice_number TEXT,
+    hours INTEGER,
+    minutes INTEGER,
+    decimal_hours NUMERIC(10, 2),
+    estimated_time NUMERIC(10, 2),
+    estimated_hours NUMERIC(10, 2),
+    estimated_minutes NUMERIC(10, 2),
+    tags TEXT,
+    task_tags TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    external_user_id BIGINT,
+    external_task_id BIGINT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.time_entries ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Time entries viewable by everyone" ON public.time_entries FOR SELECT USING (true);
+CREATE POLICY "Admins can manage entries" ON public.time_entries FOR ALL USING (is_admin());
+
+-- 13. VIEWS FOR DASHBOARD
+-- View 1: Hours per day per person
+CREATE OR REPLACE VIEW public.daily_hours_by_person AS
+SELECT 
+    date,
+    last_name,
+    SUM(decimal_hours) as total_hours
+FROM 
+    public.time_entries
+GROUP BY 
+    date, last_name
+ORDER BY 
+    date DESC, last_name;
+
+-- View 2: Hours per task tag
+CREATE OR REPLACE VIEW public.task_tag_hours AS
+SELECT 
+    task_tags,
+    SUM(decimal_hours) as total_hours
+FROM 
+    public.time_entries
+WHERE 
+    task_tags IS NOT NULL
+GROUP BY 
+    task_tags
+ORDER BY 
+    total_hours DESC;
+
+-- View 3: Person task tag distribution (Hours and %)
+CREATE OR REPLACE VIEW public.person_tag_distribution AS
+WITH person_totals AS (
+    SELECT 
+        last_name, 
+        SUM(decimal_hours) as person_total_hours
+    FROM 
+        public.time_entries
+    GROUP BY 
+        last_name
+)
+SELECT 
+    t.last_name,
+    t.task_tags,
+    SUM(t.decimal_hours) as tag_hours,
+    ROUND((SUM(t.decimal_hours) / pt.person_total_hours * 100)::numeric, 2) as percentage
+FROM 
+    public.time_entries t
+JOIN 
+    person_totals pt ON t.last_name = pt.last_name
+WHERE 
+    t.task_tags IS NOT NULL
+GROUP BY 
+    t.last_name, t.task_tags, pt.person_total_hours
+ORDER BY 
+    t.last_name, tag_hours DESC;
+
+
+
