@@ -84,8 +84,30 @@ function mapRowToEntry(row: any[]) {
     }
 }
 
-export async function POST() {
+import { createClient as createServerClient } from '@/lib/supabase/server'
+
+export async function POST(request: Request) {
     try {
+        // Security check: API Key OR Valid Session
+        const apiKey = request.headers.get('x-api-key')
+        const serverApiKey = process.env.SYNC_API_KEY
+
+        let isAuthorized = false
+
+        // Check 1: API Key (for external monitors or automation)
+        if (serverApiKey && apiKey === serverApiKey) {
+            isAuthorized = true
+        } else {
+            // Check 2: Valid Session (for UI triggers)
+            const supabaseAuth = await createServerClient()
+            const { data: { session } } = await supabaseAuth.auth.getSession()
+            if (session) isAuthorized = true
+        }
+
+        if (!isAuthorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
         const spreadsheetId = process.env.GOOGLE_SHEET_ID_TIME_ENTRIES
         if (!spreadsheetId) {
             return NextResponse.json(
