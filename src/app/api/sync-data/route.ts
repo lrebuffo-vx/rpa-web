@@ -96,60 +96,68 @@ export async function POST() {
 
         console.log('Starting sync from sheet:', spreadsheetId)
 
-        // 1. Read Sheet Data
-        // Assuming headers are in row 1, so we start reading from row 2 (A2)
-        const rows = await readSheet(spreadsheetId, 'Time!A2:AA') // Reading up to col AA (27 cols)
-
-        if (!rows || rows.length === 0) {
-            return NextResponse.json({ message: 'No data found in sheet' })
-        }
-
-        console.log(`Found ${rows.length} rows. Processing...`)
-
-        // 2. Map Data
-        const mapped = rows.map(mapRowToEntry)
-
-        // Log rows that are missing an ID (empty or not a number)
-        rows.forEach((row, index) => {
-            if (!row[0] || isNaN(parseInt(row[0]))) {
-                console.log(`Fila ${index + 2} (A2 offset): Sin ID o dato vacío detectado:`, row)
-            }
-        })
-
-        const entries = mapped.filter(e => e.id) // Filter out only rows with invalid IDs (required for upsert)
-
-        if (entries.length === 0) {
-            console.warn(`All ${rows.length} rows were filtered out. Sample raw row:`, rows[0])
-            console.warn(`Sample mapped row:`, mapped[0])
-            return NextResponse.json({
-                message: 'No valid entries to sync',
-                count: 0
-            })
-        }
-
-        // 3. Upsert to Supabase
-        // Use SERVICE_ROLE_KEY to bypass RLS for this system operation
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         )
 
-        // Batch upsert
-        const { error } = await supabase
-            .from('time_entries')
-            .upsert(entries, {
-                onConflict: 'id',
-                ignoreDuplicates: false
-            })
+        // --- 1. Sync Time Entries (Hoja 'Time') ---
+        const rowsTime = await readSheet(spreadsheetId, 'Time!A2:AA')
+        let syncCountTime = 0
 
-        if (error) {
-            console.error('Supabase error:', error)
-            return NextResponse.json({ error: error.message }, { status: 500 })
+        if (rowsTime && rowsTime.length > 0) {
+            const mapped = rowsTime.map(mapRowToEntry)
+            const entries = mapped.filter(e => e.id)
+
+            if (entries.length > 0) {
+                const { error } = await supabase
+                    .from('time_entries')
+                    .upsert(entries, { onConflict: 'id' })
+
+                if (error) throw new Error(`Error syncing time_entries: ${error.message}`)
+                syncCountTime = entries.length
+            }
+        }
+
+        // --- 2. Sync Planning (Hoja 'Planificacion') ---
+        const rowsPlanning = await readSheet(spreadsheetId, 'Planificacion!A2:I')
+        let syncCountPlanning = 0
+
+        if (rowsPlanning && rowsPlanning.length > 0) {
+            // Mapping based on user list:
+            // 0: Periodo, 1: Mes, 2: Nombre, 3: Capacidad (hs), 
+            // 4: Actividad, 5: Prioridad Actividad, 6: Tiempo (%), 7: Tiempo (hs)
+            const planningEntries = rowsPlanning.map(row => {
+                const period = parseInt(row[0])
+                const firstName = row[2]
+                if (isNaN(period) || !firstName) return null
+
+                return {
+                    period,
+                    month_name: row[1],
+                    first_name: firstName,
+                    capacity_hours: parseFloat(row[3]) || 0,
+                    activity: row[4],
+                    priority: row[5],
+                    planned_percentage: parseFloat(row[6]) || 0,
+                    planned_hours: parseFloat(row[7]) || 0
+                }
+            }).filter(Boolean) as any[]
+
+            if (planningEntries.length > 0) {
+                const { error } = await supabase
+                    .from('planning_entries')
+                    .upsert(planningEntries, { onConflict: 'period,first_name,activity' })
+
+                if (error) throw new Error(`Error syncing planning_entries: ${error.message}`)
+                syncCountPlanning = planningEntries.length
+            }
         }
 
         return NextResponse.json({
             message: 'Sync successful',
-            count: entries.length
+            time_entries_count: syncCountTime,
+            planning_entries_count: syncCountPlanning
         })
 
     } catch (error: any) {

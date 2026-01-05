@@ -298,9 +298,10 @@ GROUP BY
 ORDER BY 
     date DESC, last_name;
 
--- View 2: Hours per task tag
-CREATE OR REPLACE VIEW public.task_tag_hours AS
+-- View 2: Hours per task tag per day
+CREATE OR REPLACE VIEW public.daily_tag_hours AS
 SELECT 
+    date,
     task_tags,
     SUM(decimal_hours) as total_hours
 FROM 
@@ -308,36 +309,22 @@ FROM
 WHERE 
     task_tags IS NOT NULL
 GROUP BY 
-    task_tags
-ORDER BY 
-    total_hours DESC;
+    date, task_tags;
 
--- View 3: Person task tag distribution (Hours and %)
-CREATE OR REPLACE VIEW public.person_tag_distribution AS
-WITH person_totals AS (
-    SELECT 
-        last_name, 
-        SUM(decimal_hours) as person_total_hours
-    FROM 
-        public.time_entries
-    GROUP BY 
-        last_name
-)
+-- View 3: Hours per person per tag per day
+CREATE OR REPLACE VIEW public.daily_person_tag_hours AS
 SELECT 
-    t.last_name,
-    t.task_tags,
-    SUM(t.decimal_hours) as tag_hours,
-    ROUND((SUM(t.decimal_hours) / pt.person_total_hours * 100)::numeric, 2) as percentage
+    date,
+    last_name,
+    task_tags,
+    SUM(decimal_hours) as tag_hours
 FROM 
-    public.time_entries t
-JOIN 
-    person_totals pt ON t.last_name = pt.last_name
+    public.time_entries
 WHERE 
-    t.task_tags IS NOT NULL
+    task_tags IS NOT NULL
 GROUP BY 
-    t.last_name, t.task_tags, pt.person_total_hours
-ORDER BY 
-    t.last_name, tag_hours DESC;
+    date, last_name, task_tags;
+
 
 
 

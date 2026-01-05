@@ -17,8 +17,11 @@ export function SyncButton() {
 
             if (!response.ok) throw new Error(data.error || 'Failed to sync')
 
-            alert(`Sincronización exitosa: ${data.count} registros actualizados`)
-            window.location.reload() // Reload to refresh data (simple approach)
+            const entriesCount = data.time_entries_count ?? data.count ?? 0
+            const planningCount = data.planning_entries_count ?? 0
+
+            alert(`Sincronización exitosa:\n- ${entriesCount} registros de tiempo\n- ${planningCount} registros de planificación`)
+            window.location.reload()
         } catch (error: any) {
             console.error('Sync failed:', error)
             alert(`Error al sincronizar: ${error.message}`)
